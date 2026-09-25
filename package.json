@@ -1,6 +1,6 @@
 {
   "name": "@pipeworx/mcp-cryptocompare",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CoinDesk Data (formerly CryptoCompare / CCData) MCP.",
   "type": "module",
   "main": "src/index.ts",
@@ -26,7 +26,7 @@
     "@cloudflare/workers-types": "^4.20260405.1"
   },
   "pipeworx": {
-    "sourceHash": "v1-9890e44c165730dba2b90943eca6ae0a650bb2b1b80fe202b60f3f5e5ffdf038",
-    "sourceCommit": "60f04b68c347e970c6be94a53439d1364061fc06"
+    "sourceHash": "v1-bce1fb874979de419ece70c307539dd4ff857186c5a27141d3e80d5d1ba62c3d",
+    "sourceCommit": "5b29c2b0c11e1fcd954969a245b474e6e9475116"
   }
 }
