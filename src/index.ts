@@ -678,6 +678,16 @@ function collapse(s: string): string {
  * 401 body points callers at developers.coindesk.com. The legacy data host
  * min-api.cryptocompare.com still serves (verified 2026-08-21); the new host is
  * data-api.coindesk.com.
+ *
+ * BYOK-only (fleet #2444, Bruce ruled `byok` on 2026-09-30): the shared
+ * platform key is permanently over quota (472 calls/30d, every tool answering
+ * "You are over your rate limit please upgrade your account!") and Bruce
+ * declined to fund a replacement — other packs (`crypto`, `crypto-feeds`)
+ * already cover the same ground for free. `platformKeyEnv` was removed from
+ * this pack's gateway-manifest entry so the gateway never injects a (dead)
+ * key on the caller's behalf; every tool now REQUIRES `_apiKey` in its own
+ * schema and refuses cleanly with no key at all, rather than spending a
+ * request on a credential that can never work.
  */
 
 
@@ -692,51 +702,61 @@ async function pwFetch(url: string | URL, init?: RequestInit): Promise<Response>
 const BASE = 'https://min-api.cryptocompare.com'; // legacy host, still live; data-api.coindesk.com is the current one
 const UA = 'pipeworx-mcp-cryptocompare/1.0 (+https://pipeworx.io)';
 
+const KEY_DESC = 'Your own CoinDesk Data (formerly CryptoCompare) API key — required, Pipeworx does not supply one for this pack. Free signup: https://developers.coindesk.com/. Without a key, use the `crypto` pack (get_crypto_price) for prices/daily history or `crypto-feeds` for news instead.';
+
 const tools: McpToolExport['tools'] = [
   {
     name: 'price',
-    description: 'Current crypto spot price from CoinDesk Data (formerly CryptoCompare): one coin (fsym) quoted in many fiat or crypto symbols (tsyms), aggregated across major exchanges.',
-    inputSchema: { type: 'object', properties: { fsym: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' }, extraParams: { type: 'string' }, sign: { type: 'boolean' } }, required: ['fsym', 'tsyms'] },
+    description: 'Current crypto spot price from CoinDesk Data (formerly CryptoCompare): one coin (fsym) quoted in many fiat or crypto symbols (tsyms), aggregated across major exchanges. Requires your own CoinDesk Data API key.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsym: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' }, extraParams: { type: 'string' }, sign: { type: 'boolean' } }, required: ['_apiKey', 'fsym', 'tsyms'] },
   },
   {
     name: 'price_multi',
-    description: 'Current crypto spot prices from CoinDesk Data (formerly CryptoCompare) for many coins at once (fsyms) quoted in many symbols (tsyms), aggregated across major exchanges.',
-    inputSchema: { type: 'object', properties: { fsyms: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' }, extraParams: { type: 'string' }, sign: { type: 'boolean' } }, required: ['fsyms', 'tsyms'] },
+    description: 'Current crypto spot prices from CoinDesk Data (formerly CryptoCompare) for many coins at once (fsyms) quoted in many symbols (tsyms), aggregated across major exchanges. Requires your own CoinDesk Data API key.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsyms: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' }, extraParams: { type: 'string' }, sign: { type: 'boolean' } }, required: ['_apiKey', 'fsyms', 'tsyms'] },
   },
-  { name: 'price_full', description: 'Fetch full market snapshot for multiple crypto pairs (fsyms → tsyms): price, 24h change/%, volume, market cap, open/high/low from CoinDesk Data (formerly CryptoCompare).', inputSchema: { type: 'object', properties: { fsyms: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' } }, required: ['fsyms', 'tsyms'] } },
+  { name: 'price_full', description: 'Fetch full market snapshot for multiple crypto pairs (fsyms → tsyms): price, 24h change/%, volume, market cap, open/high/low from CoinDesk Data (formerly CryptoCompare). Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsyms: { type: 'string' }, tsyms: { type: 'string' }, e: { type: 'string' } }, required: ['_apiKey', 'fsyms', 'tsyms'] } },
   {
     name: 'histo_minute',
-    description: 'Minute-granularity historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.) across major exchanges. Use for short-timeframe charting, intraday backtests, and tick-level analysis.',
-    inputSchema: { type: 'object', properties: { fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['fsym', 'tsym'] },
+    description: 'Minute-granularity historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.) across major exchanges. Use for short-timeframe charting, intraday backtests, and tick-level analysis. Requires your own CoinDesk Data API key.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['_apiKey', 'fsym', 'tsym'] },
   },
   {
     name: 'histo_hour',
-    description: 'Hourly historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.). Use for medium-timeframe crypto charting, swing-trading analysis, multi-day backtests.',
-    inputSchema: { type: 'object', properties: { fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['fsym', 'tsym'] },
+    description: 'Hourly historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.). Use for medium-timeframe crypto charting, swing-trading analysis, multi-day backtests. Requires your own CoinDesk Data API key.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['_apiKey', 'fsym', 'tsym'] },
   },
   {
     name: 'histo_day',
-    description: 'Daily historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.). Use for long-horizon crypto charting, multi-year backtests, and macro analysis.',
-    inputSchema: { type: 'object', properties: { fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['fsym', 'tsym'] },
+    description: 'Daily historical OHLC + volume for a crypto pair (BTC/USD, ETH/USDT, etc.). Use for long-horizon crypto charting, multi-year backtests, and macro analysis. Requires your own CoinDesk Data API key.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsym: { type: 'string' }, tsym: { type: 'string' }, limit: { type: 'number' }, aggregate: { type: 'number' }, toTs: { type: 'number' }, e: { type: 'string' } }, required: ['_apiKey', 'fsym', 'tsym'] },
   },
-  { name: 'top_pairs', description: 'Return the top trading pairs for a base coin (fsym) by 24h volume on CoinDesk Data (formerly CryptoCompare), with exchange and volume data for each pair.', inputSchema: { type: 'object', properties: { fsym: { type: 'string' }, limit: { type: 'number' } }, required: ['fsym'] } },
-  { name: 'top_volume_full', description: 'Return the top cryptocurrencies ranked by 24h total volume denominated in a quote symbol (tsym); paginates with page parameter.', inputSchema: { type: 'object', properties: { tsym: { type: 'string' }, limit: { type: 'number' }, page: { type: 'number' } }, required: ['tsym'] } },
-  { name: 'top_market_cap', description: 'Return the top cryptocurrencies ranked by market capitalization denominated in a quote symbol (tsym); paginates with page parameter.', inputSchema: { type: 'object', properties: { limit: { type: 'number' }, tsym: { type: 'string' }, page: { type: 'number' } } } },
+  { name: 'top_pairs', description: 'Return the top trading pairs for a base coin (fsym) by 24h volume on CoinDesk Data (formerly CryptoCompare), with exchange and volume data for each pair. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, fsym: { type: 'string' }, limit: { type: 'number' } }, required: ['_apiKey', 'fsym'] } },
+  { name: 'top_volume_full', description: 'Return the top cryptocurrencies ranked by 24h total volume denominated in a quote symbol (tsym); paginates with page parameter. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, tsym: { type: 'string' }, limit: { type: 'number' }, page: { type: 'number' } }, required: ['_apiKey', 'tsym'] } },
+  { name: 'top_market_cap', description: 'Return the top cryptocurrencies ranked by market capitalization denominated in a quote symbol (tsym); paginates with page parameter. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, limit: { type: 'number' }, tsym: { type: 'string' }, page: { type: 'number' } }, required: ['_apiKey'] } },
   {
     name: 'news',
-    description: 'CoinDesk Data (formerly CryptoCompare) aggregated crypto news feed: Bitcoin/Ethereum/altcoin headlines, exchange announcements, regulatory updates, market analysis. Filter by category (BTC, ETH, Trading, Regulation) or feed. Use for "what is happening in crypto right now". Prefer over web search for crypto-specific news.',
-    inputSchema: { type: 'object', properties: { lang: { type: 'string' }, sortOrder: { type: 'string' }, lTs: { type: 'number' }, feeds: { type: 'string' }, categories: { type: 'string' }, excludeCategories: { type: 'string' } } },
+    description: 'CoinDesk Data (formerly CryptoCompare) aggregated crypto news feed: Bitcoin/Ethereum/altcoin headlines, exchange announcements, regulatory updates, market analysis. Filter by category (BTC, ETH, Trading, Regulation) or feed. Requires your own CoinDesk Data API key — for crypto news without one, use the `crypto-feeds` pack instead.',
+    inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, lang: { type: 'string' }, sortOrder: { type: 'string' }, lTs: { type: 'number' }, feeds: { type: 'string' }, categories: { type: 'string' }, excludeCategories: { type: 'string' } }, required: ['_apiKey'] },
   },
-  { name: 'news_categories', description: 'List crypto news category tags available for filtering the news feed (BTC, ETH, Trading, Regulation, Mining, etc.). Use as a directory before calling news() with a category filter.', inputSchema: { type: 'object', properties: {} } },
-  { name: 'news_feeds', description: 'List crypto news source publishers CoinDesk Data (formerly CryptoCompare) aggregates (CoinDesk, CoinTelegraph, etc.) with feed IDs and metadata. Use as a directory before filtering news() by source.', inputSchema: { type: 'object', properties: {} } },
-  { name: 'social_stats', description: 'Fetch social media stats for a coin by CoinDesk Data (formerly CryptoCompare) coinId: Twitter followers, Reddit subscribers, Facebook likes, GitHub activity.', inputSchema: { type: 'object', properties: { coinId: { type: 'number' } }, required: ['coinId'] } },
-  { name: 'all_coins', description: 'Return the full CoinDesk Data (formerly CryptoCompare) coin list with symbol, name, CoinId, algorithm, proof type, and asset type for every tracked cryptocurrency.', inputSchema: { type: 'object', properties: {} } },
-  { name: 'all_exchanges', description: 'Return metadata for all crypto exchanges tracked by CoinDesk Data (formerly CryptoCompare): name, country, grade, trading pairs, fee, and website URL.', inputSchema: { type: 'object', properties: {} } },
+  { name: 'news_categories', description: 'List crypto news category tags available for filtering the news feed (BTC, ETH, Trading, Regulation, Mining, etc.). Use as a directory before calling news() with a category filter. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC } }, required: ['_apiKey'] } },
+  { name: 'news_feeds', description: 'List crypto news source publishers CoinDesk Data (formerly CryptoCompare) aggregates (CoinDesk, CoinTelegraph, etc.) with feed IDs and metadata. Use as a directory before filtering news() by source. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC } }, required: ['_apiKey'] } },
+  { name: 'social_stats', description: 'Fetch social media stats for a coin by CoinDesk Data (formerly CryptoCompare) coinId: Twitter followers, Reddit subscribers, Facebook likes, GitHub activity. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC }, coinId: { type: 'number' } }, required: ['_apiKey', 'coinId'] } },
+  { name: 'all_coins', description: 'Return the full CoinDesk Data (formerly CryptoCompare) coin list with symbol, name, CoinId, algorithm, proof type, and asset type for every tracked cryptocurrency. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC } }, required: ['_apiKey'] } },
+  { name: 'all_exchanges', description: 'Return metadata for all crypto exchanges tracked by CoinDesk Data (formerly CryptoCompare): name, country, grade, trading pairs, fee, and website URL. Requires your own CoinDesk Data API key.', inputSchema: { type: 'object', properties: { _apiKey: { type: 'string', description: KEY_DESC } }, required: ['_apiKey'] } },
 ];
 
 async function callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   const apiKey = (args._apiKey as string | undefined)?.trim();
-  if (!apiKey) throw new Error('CoinDesk Data (formerly CryptoCompare) requires an API key: pass your key as the _apiKey argument (get one at https://developers.coindesk.com/).');
+  if (!apiKey) {
+    return {
+      found: false,
+      reason: 'missing_api_key',
+      provider: 'cryptocompare',
+      message: 'CoinDesk Data (formerly CryptoCompare) requires an API key: pass your own key as the `_apiKey` argument. Free signup: https://developers.coindesk.com/.',
+      hint: 'Pipeworx does not supply a shared key for this pack (fleet #2444 — the shared key was permanently over quota and Bruce declined to fund a replacement). Without your own key, use the `crypto` pack (get_crypto_price) for prices/daily history, or `crypto-feeds` for crypto news.',
+    };
+  }
   const get = async (path: string, extras: Record<string, unknown> = {}) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(extras)) {
@@ -750,9 +770,10 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
     const json = (await res.json()) as Record<string, unknown>;
     // CoinDesk Data signals errors in the BODY with HTTP 200:
     // {"Response":"Error","Message":"You are over your rate limit…","Type":99}.
-    // The shared key's quota gets exhausted by aggregate gateway traffic, so
-    // return a clean, actionable stub that redirects to working price sources
-    // instead of a raw error object the grounding judge flags as ungrounded.
+    // Now that this pack is BYOK-only (fleet #2444), this is the CALLER's own
+    // key hitting its plan's rate/quota limit, not a shared Pipeworx key — but
+    // return a clean, actionable stub either way rather than a raw error
+    // object the grounding judge flags as ungrounded.
     // `reason` MUST stay 'rate_limit': that exact string is what the gateway's
     // structured-stub sniff looks for before booking the call as
     // upstream_throttled and firing the retry ladder. It used to read
@@ -768,7 +789,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
         provider: 'cryptocompare',
         message,
         hint: rateLimited
-          ? "CoinDesk Data (formerly CryptoCompare) has exhausted this key's quota. For current crypto prices use the `crypto` pack (get_crypto_price) or `kraken` (ticker, e.g. pair \"XBTUSD\"); for daily history use the FRED pack (CBBTCUSD) or kraken (ohlc)."
+          ? "Your CoinDesk Data key has hit its plan's rate limit. For current crypto prices use the `crypto` pack (get_crypto_price) or `kraken` (ticker, e.g. pair \"XBTUSD\"); for crypto news use `crypto-feeds`; for daily history use the FRED pack (CBBTCUSD) or kraken (ohlc)."
           : undefined,
       };
     }
