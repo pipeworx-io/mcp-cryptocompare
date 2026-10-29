@@ -1,12 +1,20 @@
 {
   "name": "@pipeworx/mcp-cryptocompare",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "CoinDesk Data (formerly CryptoCompare / CCData) MCP.",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./tools.json": "./tools.json",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "mcp-cryptocompare": "bin/cli.js"
+  },
+  "files": ["bin/", "lib/", "tools.json", "server.json"],
+  "engines": {
+    "node": ">=18"
   },
   "keywords": ["mcp", "mcp-server", "model-context-protocol", "pipeworx", "cryptocompare"],
   "license": "MIT",
@@ -14,19 +22,12 @@
     "type": "git",
     "url": "git+https://github.com/pipeworx-io/mcp-cryptocompare.git"
   },
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "tsx": "^4.19.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3",
-    "@cloudflare/workers-types": "^4.20260405.1"
-  },
+  "mcpName": "io.github.pipeworx-io/cryptocompare",
   "pipeworx": {
-    "sourceHash": "v1-bf77ec73b088e74fd3a4193f9da2ba15d5a1e50f356c1bffa365afb62745164d",
-    "sourceCommit": "f1ef7a2f6b9cb1b8da1374ec2fcb28c661582b35"
+    "mode": "gateway",
+    "slug": "cryptocompare",
+    "gatewaySlug": "cryptocompare",
+    "sourceHash": "v1-6ffeae86a236ea32548d9e65427a7a90d26f1feac7bdaeeb42212f33b336d9f1",
+    "sourceCommit": "0b3faaa4d85299a961dd86dea75a0f0e1dad280c"
   }
 }
